@@ -73,7 +73,7 @@ Training :
 25 % de valeur de training
 shuffle -> prises en aléatoire dans le schéma
 '''
-'''
+
 train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = 0.25, random_state = 42)
 
 # The baseline predictions are the targets
@@ -124,4 +124,3 @@ joblib.dump('model.joblib')
 
 
 
-'''
