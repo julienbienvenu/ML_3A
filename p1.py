@@ -13,8 +13,11 @@ from datetime import datetime
 import random
 import joblib
 
+from pandas.plotting import lag_plot
 from sklearn.metrics import mean_squared_error
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima_model import ARMA
+from statsmodels.tsa.ar_model import AutoReg
 
 df = pd.read_csv('TimeSeriesForecasting.csv')
 
@@ -48,7 +51,7 @@ df['time'] = list_date
 
 df=df[5:]
 
-def ranfor(df):
+def random_forest(df):
     features =df.drop(labels=['forecastedTagets'], axis=1)    
 
     #describing dates with new columns
@@ -70,16 +73,13 @@ def ranfor(df):
     #Define accuracy of example
     delta = 100 * abs(forecast_target - labels)/labels
     acc_data = 100 - np.mean(delta)
-    print('Acc_data :', acc_data)
-
-
     '''
     Training : 
     25 % de valeur de training
     shuffle -> prises en aléatoire dans le schéma
     '''
 
-    train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = 0.25, random_state = 42)
+    train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = 0.25, random_state = 42, shuffle=False)
 
     # The baseline predictions are the targets
     baseline_preds = test_features[:, feature_list.index('avg')]
@@ -99,57 +99,44 @@ def ranfor(df):
 
     # Use the forest's predict method on the test data
     predictions = rf.predict(test_features)
-    # Calculate the absolute errors
-    errors = abs(predictions - test_labels)
-    # Print out the mean absolute error (mae)
-    #print('Mean Absolute Error:', round(np.mean(errors), 2), '€')
-
-    # Calculate mean absolute percentage error (MAPE)
-    mape = 100 * (errors / test_labels)
-
-    # Calculate and display accuracy
-    accuracy = 100 - np.mean(mape)
+    
     #print('Accuracy:', round(accuracy, 2), '%.')
 
+    '''
     # Get numerical feature importances
     importances = list(rf.feature_importances_)# List of tuples with variable and importance
     feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feature_list, importances)]# Sort the feature importances by most important first
     feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse = True)# Print out the feature and importances 
     print([print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances])     
-
+    '''
 
     #print('Training Features Shape:', train_features.shape)
     #print('Training Labels Shape:', train_labels.shape)
     #print('Testing Features Shape:', test_features.shape)
     #print('Testing Labels Shape:', test_labels.shape)    
 
-    print('Acc_train', accuracy)
+    rmse = np.sqrt(mean_squared_error(test, predictions))
+    print('Test RMSE ARIMA: %.3f' % rmse)
 
     joblib.dump('model.joblib')
 
-def MA(df):
+    return predictions.tolist()
 
-    targets = df['targets'].to_list()
-    x = [i for i in range(len(targets))]
-    train = targets[:int(len(targets)*0.75)]
-    test_labels = np.array(targets[int(len(targets)*0.75):])
-    
+def MA(train, test):
+
     predictions=[]
     a = len(train)
     for i in range(a, len(targets)):
         avg_mov = (train[-1]+train[-2]+train[-3])/3
-        if i<a+10:
-            print(avg_mov)
         train.append(avg_mov)
         predictions.append(avg_mov)
 
-    accuracy = 100 - np.mean(100 * (abs(np.array(predictions) - test_labels) / test_labels))
-    print('MA accuracy :', accuracy)
+    predictions_arr = np.array(predictions)
 
-    plt.plot(x, train, 'r')
-    #plt.plot(x, targets, 'b')
-    plt.show()
+    rmse = np.sqrt(mean_squared_error(test, predictions_arr))
+    print('Test RMSE MVA: %.3f' % rmse)
 
+    
 def calculate_ema(targets_train, days, smoothing=2):
     ema = [sum(targets_train[:days]) / days]
     for target in targets_train[days:]:
@@ -169,11 +156,21 @@ def exp_avg_mov(df):
         train_ema.append((targe * (smoothing / (1 + days))) + train_ema[-1] * (1 - (smoothing / (1 + days))))
 
 def arima(train, test):
+
+    model = ARIMA(train, order=(5,1,0))
+    model_fit = model.fit()
+    # make predictions
+    predictions = model_fit.predict(start=len(train), end=len(train)+len(test)-1, dynamic=False)
+    rmse = np.sqrt(mean_squared_error(test, predictions))
+    print('Test RMSE ARIMA: %.3f' % rmse)
+    return predictions.tolist()
+
+    '''
     history = [x for x in train]
     predictions = list()
     
     # walk-forward validation
-    for t in range(5):
+    for t in range(len(test)):
         model = ARIMA(history, order=(5,1,0))
         model_fit = model.fit()
         output = model_fit.forecast()
@@ -181,15 +178,74 @@ def arima(train, test):
         predictions.append(yhat)
         obs = test[t]
         history.append(obs)
-        print('predicted=%f, expected=%f' % (yhat, obs))
-    rmse = np.sqrt(mean_squared_error(test[:5], predictions))
-    print('Test RMSE: %.3f' % rmse)
+    rmse = np.sqrt(mean_squared_error(test, predictions))
+    print('Test RMSE ARIMA: %.3f' % rmse)
 
+    return predictions.tolist()
+    '''
 
+def ar(train, test):
+    model = AutoReg(train, lags=29)
+    model_fit = model.fit()
+    # make predictions
+    predictions = model_fit.predict(start=len(train), end=len(train)+len(test)-1, dynamic=False)
+    rmse = np.sqrt(mean_squared_error(test, predictions))
+    print('Test RMSE AR: %.3f' % rmse)
+    return predictions.tolist()
+
+def arma(train, test):
+    model = ARMA(train)
+    model_fit = model.fit()
+    # make predictions
+    predictions = model_fit.predict(start=len(train), end=len(train)+len(test)-1, dynamic=False)
+    print(predictions)
+    rmse = np.sqrt(mean_squared_error(test, predictions))
+    print('Test RMSE ARMA: %.3f' % rmse)
+    
+    return predictions.tolist()
+
+def graph():
+    
+    ## Ploting the dispersion
+    plt.figure()
+    plt.subplot(221)
+    lag_plot(df['targets'])
+    plt.title('Dispersion of targets')
+    plt.subplot(222)
+    lag_plot(df['forecastedTagets'], c='Red')
+    plt.title('Dispersion of Forecast targets')
+    
+    ar_pred = ar(train, test)
+    arima_pred = arima(train, test)
+    rf_pred = random_forest(df)
+    mva_pred = MA(train, test)
+
+    df['MVA'] = train + mva_pred
+    df['AR'] = train + ar_pred
+    df['ARIMA'] = train + arima_pred
+    df['RandomForest'] = train + rf_pred
+    
+    #Plotting the predictive models results
+    plt.subplot(223)
+    plt.title('AR method')
+    plt.plot(df['AR'])
+    plt.subplot(224)
+    plt.title('ARIMA method')
+    plt.plot(df['ARIMA'])
+    plt.subplot(225)
+    plt.title('Random Forest method')
+    plt.plot(df['RandomForest'])
+    plt.subplot(225)
+    plt.title('MVA method')
+    plt.plot(df['MVA'])
+    plt.save('Results.png')
+    plt.show()
+
+    df.to_csv('Results.csv')
 
 targets = df['targets'].to_list()
 x = [i for i in range(len(targets))]
 train = targets[:int(len(targets)*0.75)]
 test = targets[int(len(targets)*0.75):]
 
-print(arima(train, test))
+graph()
