@@ -10,7 +10,7 @@ import pydot
 import datetime
 import matplotlib.pyplot as plt
 from datetime import datetime
-
+import random
 import joblib
 
 df = pd.read_csv('TimeSeriesForecasting.csv')
@@ -132,20 +132,17 @@ def MA(df):
     test_labels = np.array(targets[int(len(targets)*0.75):])
     
     predictions=[]
-    for _ in range(len(train), len(targets)):
+    a = len(train)
+    for i in range(a, len(targets)):
         avg_mov = (train[-1]+train[-2]+train[-3])/3
+        if i<a+10:
+            print(avg_mov)
         train.append(avg_mov)
         predictions.append(avg_mov)
 
     accuracy = 100 - np.mean(100 * (abs(np.array(predictions) - test_labels) / test_labels))
-    print(accuracy)
+    print('MA accuracy :', accuracy)
 
     plt.plot(x, train, 'r')
     #plt.plot(x, targets, 'b')
     plt.show()
-
-
-MA(df)
-
-
-
