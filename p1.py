@@ -13,6 +13,9 @@ from datetime import datetime
 import random
 import joblib
 
+from sklearn.metrics import mean_squared_error
+from statsmodels.tsa.arima.model import ARIMA
+
 df = pd.read_csv('TimeSeriesForecasting.csv')
 
 rows = df.columns[1:]
@@ -146,3 +149,47 @@ def MA(df):
     plt.plot(x, train, 'r')
     #plt.plot(x, targets, 'b')
     plt.show()
+
+def calculate_ema(targets_train, days, smoothing=2):
+    ema = [sum(targets_train[:days]) / days]
+    for target in targets_train[days:]:
+        ema.append((target * (smoothing / (1 + days))) + ema[-1] * (1 - (smoothing / (1 + days))))
+    return ema
+
+def exp_avg_mov(df):
+
+    targets = df['targets'].to_list()
+    x = [i for i in range(len(targets))]
+    train = targets[:int(len(targets)*0.75)]
+    test_labels = np.array(targets[int(len(targets)*0.75):])
+
+    train_ema = calculate_ema(train, 10)
+
+    for _ in range(len(test_labels)):
+        train_ema.append((targe * (smoothing / (1 + days))) + train_ema[-1] * (1 - (smoothing / (1 + days))))
+
+def arima(train, test):
+    history = [x for x in train]
+    predictions = list()
+    
+    # walk-forward validation
+    for t in range(5):
+        model = ARIMA(history, order=(5,1,0))
+        model_fit = model.fit()
+        output = model_fit.forecast()
+        yhat = output[0]
+        predictions.append(yhat)
+        obs = test[t]
+        history.append(obs)
+        print('predicted=%f, expected=%f' % (yhat, obs))
+    rmse = np.sqrt(mean_squared_error(test[:5], predictions))
+    print('Test RMSE: %.3f' % rmse)
+
+
+
+targets = df['targets'].to_list()
+x = [i for i in range(len(targets))]
+train = targets[:int(len(targets)*0.75)]
+test = targets[int(len(targets)*0.75):]
+
+print(arima(train, test))
