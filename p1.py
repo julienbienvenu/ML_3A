@@ -165,6 +165,9 @@ def graph():
     plt.subplot(222)
     lag_plot(df['forecastedTagets'], c='Red')
     plt.title('Dispersion of Forecast targets')
+
+    rmse = np.sqrt(mean_squared_error(np.array(df['targets']), np.array(df['forecastedTagets'])))
+    print('ForecastedTargets RMSE: %.3f' % rmse)
     
     mva_pred = MA(train, test)
     ar_pred = ar(train, test)
