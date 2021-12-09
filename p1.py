@@ -168,12 +168,12 @@ def graph():
 
     rmse = np.sqrt(mean_squared_error(np.array(df['targets']), np.array(df['forecastedTagets'])))
     print('ForecastedTargets RMSE: %.3f' % rmse)
-    
+
+    #Running predictive models    
     mva_pred = MA(train, test)
     ar_pred = ar(train, test)
     arima_pred = arima(train, test)
-    rf_pred = random_forest(df)
-    
+    rf_pred = random_forest(df)    
 
     df['MVA'] = train + mva_pred
     df['AR'] = train + ar_pred
