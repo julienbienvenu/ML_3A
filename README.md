@@ -14,3 +14,6 @@ The ARIMA model offer better results, therefore we don't use all the dataset and
 
 ## The Random Forest Models
 The random forest models is fitting well, it use all the datasets (with features) and is competiting with the forectastedTargets (98,5% vs 98,9%)
+
+## Model Evaluation
+![plot](Dispersion.png)

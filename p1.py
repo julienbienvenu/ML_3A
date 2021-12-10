@@ -87,15 +87,16 @@ def MA(train, test):
 
     predictions=[]
     a = len(train)
-    for i in range(a, len(targets)):
+    for i in range(len(test)):
         avg_mov = (train[-1]+train[-2]+train[-3])/3
         train.append(avg_mov)
         predictions.append(avg_mov)
 
     predictions_arr = np.array(predictions)
-
     rmse = np.sqrt(mean_squared_error(test, predictions_arr))
     print('Test RMSE MVA: %.3f' % rmse)
+
+    return predictions
 
     
 def calculate_ema(targets_train, days, smoothing=2):
@@ -170,15 +171,28 @@ def graph():
     print('ForecastedTargets RMSE: %.3f' % rmse)
 
     #Running predictive models    
-    mva_pred = MA(train, test)
+    #mva_pred = MA(train, test)
     ar_pred = ar(train, test)
+    '''
     arima_pred = arima(train, test)
-    rf_pred = random_forest(df)    
+    rf_pred = random_forest(df) 
+    '''   
 
-    df['MVA'] = train + mva_pred
+    #df['MVA'] = train + mva_pred
     df['AR'] = train + ar_pred
+
+    plt.subplot(223)    
+    lag_plot(df['AR'][:len(train)], c='Green', label='Train')
+    lag_plot(df['AR'][len(train):], c='Yellow', label='Test')
+    plt.legend(loc='lower right')
+    plt.title('Dispersion of AR targets')
+    plt.savefig('Dispersion')
+    plt.show()
+
+    '''
     df['ARIMA'] = train + arima_pred
     df['RandomForest'] = train + rf_pred
+    '''
     
     #Plotting the predictive models results
     plt.subplot(223)
