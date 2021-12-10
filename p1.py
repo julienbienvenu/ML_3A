@@ -53,11 +53,8 @@ df['time'] = list_date
 df=df[5:]
 
 def random_forest(df):
-    features =df.drop(labels=['forecastedTagets'], axis=1)    
-
-    #describing dates with new columns
-    features = pd.get_dummies(features, columns=['time'])
-
+    features =df.drop(labels=['time','forecastedTagets'], axis=1)    
+    
     # Labels are the values we want to predict
     labels = np.array(features['targets'])
 
@@ -68,18 +65,20 @@ def random_forest(df):
     features = np.array(features)
    
     train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = 0.25, random_state = 42, shuffle=False)
-
+    
     # Instantiate model 
     rf = RandomForestRegressor(n_estimators= 1000, random_state=42)
 
     # Train the model on training data
     rf.fit(train_features, train_labels)
 
+    #Hyperparameters
+    rf_new = RandomForestRegressor(n_estimators = 100, criterion = 'mse', max_depth = None, min_samples_split = 2, min_samples_leaf = 1)
     # Use the forest's predict method on the test data
-    predictions = rf.predict(test_features)
+    predictions = rf_new.predict(test_features)
 
     rmse = np.sqrt(mean_squared_error(test, predictions))
-    print('Test RMSE ARIMA: %.3f' % rmse)
+    print('Test RMSE RandomForest: %.3f' % rmse)
 
     return predictions.tolist()
 
@@ -217,4 +216,4 @@ x = [i for i in range(len(targets))]
 train = targets[:int(len(targets)*0.75)]
 test = targets[int(len(targets)*0.75):]
 
-graph()
+random_forest(df)
